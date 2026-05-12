@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import reportsRouter from './routes/reports';
 
 // Load environment variables
 dotenv.config();
@@ -28,7 +29,13 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.use('/reports', reportsRouter);
+
 // Start the server
-app.listen(port, () => {
-  console.log(`[API Server]: SahiDawa API is running at http://localhost:${port}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    console.log(`[API Server]: SahiDawa API is running at http://localhost:${port}`);
+  });
+}
+
+export default app;
