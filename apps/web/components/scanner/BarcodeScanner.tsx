@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Camera, AlertCircle, VideoOff } from "lucide-react";
+import { Camera, AlertCircle, VideoOff, Zap, ZapOff } from "lucide-react";
 
 /**
  * Status of the barcode scanner lifecycle.
@@ -46,6 +46,7 @@ function stopMediaStream(stream: MediaStream | null): void {
  * - Handles permission denial, missing cameras, and scan failures gracefully.
  * - Fully cleans up video tracks, reader instances, and timers on unmount.
  * - Safe for Next.js App Router (client-only rendering, no SSR browser API access).
+ * - Flashlight/Torch toggle support for low-light environments.
  *
  * @example
  * ```tsx
@@ -61,6 +62,8 @@ export function BarcodeScanner({ onScan, debounceMs = 2000 }: BarcodeScannerProp
 
     const [status, setStatus] = useState<ScannerStatus>("initializing");
     const [errorMessage, setErrorMessage] = useState<string>("");
+    const [hasTorch, setHasTorch] = useState(false);
+    const [torchOn, setTorchOn] = useState(false);
 
     /**
      * Determines whether a scan result should be emitted based on the
@@ -153,6 +156,15 @@ export function BarcodeScanner({ onScan, debounceMs = 2000 }: BarcodeScannerProp
 
                 controlsRef.current = controls;
                 setStatus("scanning");
+
+                // Check for torch capability on the active stream
+                const track = stream.getVideoTracks()[0];
+                if (track) {
+                    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+                    if ("torch" in capabilities) {
+                        setHasTorch(true);
+                    }
+                }
             } catch (err: unknown) {
                 if (cancelled) return;
 
@@ -186,11 +198,33 @@ export function BarcodeScanner({ onScan, debounceMs = 2000 }: BarcodeScannerProp
             controlsRef.current = null;
             stopMediaStream(streamRef.current);
             streamRef.current = null;
+            setHasTorch(false);
+            setTorchOn(false);
         };
         // `onScan` and `shouldEmitScan` are stable via useCallback in the parent
         // and within this component respectively. Re-running the effect on every
         // render would restart the camera unnecessarily.
     }, []);
+
+    const toggleTorch = async () => {
+        const stream = streamRef.current;
+        if (!stream) return;
+        const track = stream.getVideoTracks()[0];
+        if (!track) return;
+
+        const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+        if (!("torch" in capabilities)) return;
+
+        const nextTorchState = !torchOn;
+        try {
+            await track.applyConstraints({
+                advanced: [{ torch: nextTorchState } as any],
+            });
+            setTorchOn(nextTorchState);
+        } catch (err) {
+            console.error("Failed to toggle torch constraint:", err);
+        }
+    };
 
     if (status === "permission-denied") {
         return (
@@ -260,6 +294,21 @@ export function BarcodeScanner({ onScan, debounceMs = 2000 }: BarcodeScannerProp
                     <Camera size={14} className="text-emerald-400" />
                     <span className="text-xs font-medium text-emerald-400">Scanning</span>
                 </div>
+            )}
+            {status === "scanning" && hasTorch && (
+                <button
+                    onClick={toggleTorch}
+                    type="button"
+                    className="absolute top-4 right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white backdrop-blur-md transition-all hover:bg-black/80 active:scale-95"
+                    title={torchOn ? "Turn off flashlight" : "Turn on flashlight"}
+                    aria-label={torchOn ? "Turn off flashlight" : "Turn on flashlight"}
+                >
+                    {torchOn ? (
+                        <Zap className="h-5 w-5 text-amber-400 fill-amber-400" />
+                    ) : (
+                        <ZapOff className="h-5 w-5 text-white" />
+                    )}
+                </button>
             )}
         </div>
     );
