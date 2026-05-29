@@ -71,6 +71,7 @@ export default function LanguageSwitcher() {
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-(--color-border-muted) bg-(--color-surface-muted) text-(--color-text-primary) shadow-sm transition-colors hover:bg-(--color-border-muted) sm:h-10 sm:w-10"
             >
                 <Globe size={18} className="text-emerald-600 dark:text-emerald-400" />
+                <span className="sr-only">{current.native}</span>
             </button>
 
             {/* Dropdown */}

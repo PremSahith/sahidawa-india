@@ -90,7 +90,8 @@ export function OfflineBanner() {
                             </p>
                             <p className="truncate text-xs text-white/85">
                                 {isCurrentlyOffline
-                                    ? t("descriptionOffline") + (isTestMode ? " · Test mode" : "")
+                                    ? t("descriptionOffline") +
+                                      (isTestMode ? " · Test mode" : "")
                                     : t("descriptionOnline")}
                             </p>
                         </div>

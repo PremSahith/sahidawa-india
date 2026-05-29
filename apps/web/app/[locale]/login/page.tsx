@@ -52,15 +52,13 @@ export default function LoginPage() {
             <div className="w-full max-w-md">
                 {/* Logo */}
                 <div className="mb-8 flex items-center justify-center gap-3">
-                    <div className="rounded-2xl bg-emerald-100 p-3 shadow-sm dark:bg-emerald-950/30">
-                        <ShieldCheck className="dark:text-emerald-450 h-7 w-7 text-emerald-600" />
+                    <div className="rounded-2xl bg-emerald-100 dark:bg-emerald-950/30 p-3 shadow-sm">
+                        <ShieldCheck className="h-7 w-7 text-emerald-600 dark:text-emerald-450" />
                     </div>
 
                     <div>
                         <h1 className="text-3xl font-bold text-(--color-text-primary)">SahiDawa</h1>
-                        <p className="text-sm text-(--color-text-secondary)">
-                            Secure Health Verification
-                        </p>
+                        <p className="text-sm text-(--color-text-secondary)">Secure Health Verification</p>
                     </div>
                 </div>
 
@@ -68,7 +66,7 @@ export default function LoginPage() {
                 <div className="rounded-3xl border border-(--color-border-muted) bg-(--color-surface-page) p-8 shadow-xl">
                     <div className="mb-7">
                         <h2 className="flex items-center gap-2 text-3xl font-bold text-(--color-text-primary)">
-                            Welcome Back <Hand className="h-8 w-8 animate-bounce text-amber-500" />
+                            Welcome Back <Hand className="h-8 w-8 text-amber-500 animate-bounce" />
                         </h2>
 
                         <p className="mt-2 text-(--color-text-secondary)">
@@ -80,7 +78,7 @@ export default function LoginPage() {
                     {error && (
                         <LiveMessage
                             tone="critical"
-                            className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900 dark:bg-red-950/20 dark:text-red-400"
+                            className="mb-5 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 px-4 py-3 text-sm text-red-600 dark:text-red-400"
                         >
                             {error}
                         </LiveMessage>
@@ -109,9 +107,7 @@ export default function LoginPage() {
 
                         {/* Password */}
                         <div>
-                            <label className="text-sm font-medium text-(--color-text-primary)">
-                                Password
-                            </label>
+                            <label className="text-sm font-medium text-(--color-text-primary)">Password</label>
 
                             <div className="mt-2 flex items-center gap-3 rounded-2xl border border-(--color-border-muted) bg-(--color-surface-muted) px-4 py-3 transition focus-within:border-emerald-500 focus-within:bg-(--color-surface-page)">
                                 <Lock className="h-5 w-5 text-(--color-text-muted)" />
@@ -131,7 +127,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="shadow-emerald-250/20 mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 font-semibold text-white shadow-lg transition-all hover:bg-emerald-700 dark:shadow-emerald-950/20"
+                            className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 font-semibold text-white shadow-lg shadow-emerald-250/20 dark:shadow-emerald-950/20 transition-all hover:bg-emerald-700"
                         >
                             {loading ? "Signing In..." : "Sign In"}
 
