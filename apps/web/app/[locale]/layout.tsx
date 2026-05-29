@@ -10,6 +10,7 @@ import { OfflineErrorBoundary } from "@/components/OfflineErrorBoundary";
 import { ServiceWorkerProvider } from "@/components/ServiceWorkerProvider";
 import BackToTopButton from "./components/BackToTopButton";
 import Chatbot from "./components/Chatbot";
+import Navbar from "./components/Navbar";
 import "./globals.css";
 import "../../src/styles/print.css";
 import { Toaster } from "sonner";
@@ -67,6 +68,7 @@ export default async function LocaleLayout({
                         <NextIntlClientProvider messages={messages}>
                             <OfflineErrorBoundary>
                                 <OfflineBanner />
+                                <Navbar />
                                 {children}
                                 <Footer />
                                 <div className="no-print">
