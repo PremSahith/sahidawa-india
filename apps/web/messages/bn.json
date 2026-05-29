@@ -25,7 +25,11 @@
         "india_region": "ভারত অঞ্চল",
         "alerts_empty_title": "সব ঠিক আছে!",
         "alerts_empty_description": "এই মুহূর্তে কোনো সক্রিয় নিয়ন্ত্রক সতর্কতা নেই। নিরাপদ থাকুন এবং আপনার ওষুধ যাচাই করুন।",
-        "view_full_alert_log": "সম্পূর্ণ সতর্কতা লগ দেখুন"
+        "view_full_alert_log": "সম্পূর্ণ সতর্কতা লগ দেখুন",
+        "heroTitle": {
+            "prefix": "আপনার স্বাস্থ্য, ",
+            "highlight": "যাচাইকৃত ও সুরক্ষিত।"
+        }
     },
     "Navigation": {
         "how_it_works": "কিভাবে কাজ করে",

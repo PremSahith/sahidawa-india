@@ -25,7 +25,11 @@
         "india_region": "भारत क्षेत्र",
         "alerts_empty_title": "सब ठीक है!",
         "alerts_empty_description": "अभी कोई सक्रिय नियामक अलर्ट नहीं है। सुरक्षित रहें और अपनी दवाएं सत्यापित करें।",
-        "view_full_alert_log": "पूरा अलर्ट लॉग देखें"
+        "view_full_alert_log": "पूरा अलर्ट लॉग देखें",
+        "heroTitle": {
+            "prefix": "आपका स्वास्थ्य, ",
+            "highlight": "सत्यापित और सुरक्षित।"
+        }
     },
     "Navigation": {
         "how_it_works": "यह कैसे काम करता है",
