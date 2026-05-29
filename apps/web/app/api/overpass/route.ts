@@ -9,38 +9,52 @@ const OVERPASS_MIRRORS = [
 ];
 
 export async function POST(req: NextRequest) {
-    const { query } = await req.json();
+    try {
+        const { query } = await req.json();
 
-    // Try at most the first 3 mirrors with a 3-second timeout each
-    // to ensure we complete within Vercel's 10-second serverless execution limit.
-    const serverMirrors = OVERPASS_MIRRORS.slice(0, 3);
-    for (const mirror of serverMirrors) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 seconds timeout per mirror
+        // Query all mirrors in parallel (race them) for maximum speed and zero timeout chaining
+        const fetchPromises = OVERPASS_MIRRORS.map(async (mirror) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8-second timeout per mirror
 
-        try {
-            const response = await fetch(mirror, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    Accept: "*/*",
-                    "User-Agent": "SahiDawaApp/1.0 (https://sahidawa.org; contact@sahidawa.org)",
-                },
-                body: `data=${encodeURIComponent(query)}`,
-                signal: controller.signal,
-            });
+            try {
+                const response = await fetch(mirror, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        Accept: "*/*",
+                        "User-Agent":
+                            "SahiDawaApp/1.0 (https://sahidawa.org; contact@sahidawa.org)",
+                    },
+                    body: `data=${encodeURIComponent(query)}`,
+                    signal: controller.signal,
+                });
 
-            clearTimeout(timeoutId);
+                clearTimeout(timeoutId);
 
-            if (!response.ok) continue;
+                if (!response.ok) {
+                    throw new Error(`Mirror ${mirror} returned status ${response.status}`);
+                }
 
-            const data = await response.json();
-            return NextResponse.json(data);
-        } catch {
-            clearTimeout(timeoutId);
-            continue;
-        }
+                const data = await response.json();
+                if (!data || !data.elements) {
+                    throw new Error(`Mirror ${mirror} returned invalid data structure`);
+                }
+
+                return data;
+            } catch (err) {
+                clearTimeout(timeoutId);
+                throw err;
+            }
+        });
+
+        // Promise.any returns the first successfully resolved promise
+        const fastestData = await Promise.any(fetchPromises);
+        return NextResponse.json(fastestData);
+    } catch (err) {
+        return NextResponse.json(
+            { error: "All parallel Overpass mirrors failed" },
+            { status: 503 }
+        );
     }
-
-    return NextResponse.json({ error: "All Overpass mirrors failed" }, { status: 503 });
 }
