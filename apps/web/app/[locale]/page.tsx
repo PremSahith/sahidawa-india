@@ -192,9 +192,13 @@ export default function SahiDawaHome() {
                         </div>
 
                         {/* Split-color title */}
-                        <h1 className="text-5xl font-black tracking-tighter leading-[1.05] md:text-7xl">
-                            <span className="text-slate-900 dark:text-white">{tHome("heroTitle.prefix")}</span>
-                            <span className="text-emerald-500 dark:text-emerald-400">{tHome("heroTitle.highlight")}</span>
+                        <h1 className="text-5xl leading-[1.05] font-black tracking-tighter md:text-7xl">
+                            <span className="text-slate-900 dark:text-white">
+                                {tHome("heroTitle.prefix")}
+                            </span>
+                            <span className="text-emerald-500 dark:text-emerald-400">
+                                {tHome("heroTitle.highlight")}
+                            </span>
                         </h1>
 
                         {/* Subtitle */}
