@@ -66,16 +66,14 @@ export default async function LocaleLayout({
                 <ServiceWorkerProvider>
                     <ThemeProvider>
                         <NextIntlClientProvider messages={messages}>
-                            <OfflineErrorBoundary>
-                                <OfflineBanner />
-                                <Navbar />
-                                {children}
-                                <Footer />
-                                <div className="no-print">
-                                    <BackToTopButton />
-                                    <Chatbot />
-                                </div>
-                            </OfflineErrorBoundary>
+                            <OfflineBanner />
+                            <Navbar />
+                            <OfflineErrorBoundary>{children}</OfflineErrorBoundary>
+                            <Footer />
+                            <div className="no-print">
+                                <BackToTopButton />
+                                <Chatbot />
+                            </div>
                         </NextIntlClientProvider>
                         <div className="no-print">
                             <Toaster richColors position="top-center" />
