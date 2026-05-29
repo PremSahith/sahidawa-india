@@ -4,9 +4,49 @@
  * Uses multiple mirrors for reliability
  */
 
+const OVERPASS_MIRRORS = [
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://z.overpass-api.de/api/interpreter",
+];
+
 async function queryOverpass(query: string): Promise<any> {
+    // 1. Primary Path: Direct client-side GET requests (bypasses Vercel timeouts and shared IP rate-limiting)
+    // Try at most the first 2 mirrors client-side with a shorter timeout to avoid long sequential delays
+    const clientMirrors = OVERPASS_MIRRORS.slice(0, 2);
+    for (const mirror of clientMirrors) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout per mirror
+
+        try {
+            const url = `${mirror}?data=${encodeURIComponent(query)}`;
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    Accept: "*/*",
+                },
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.elements) {
+                    return data;
+                }
+            }
+        } catch (err) {
+            clearTimeout(timeoutId);
+            console.warn(`Direct fetch failed for mirror ${mirror}:`, err);
+        }
+    }
+
+    // 2. Fallback Path: Server-side Vercel Proxy (if client-side requests are blocked by browser adblockers or strict local policies)
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for the fallback proxy
 
     try {
         const response = await fetch("/api/overpass", {
@@ -16,17 +56,20 @@ async function queryOverpass(query: string): Promise<any> {
             signal: controller.signal,
         });
 
-        clearTimeout(timeout);
+        clearTimeout(timeoutId);
 
-        if (!response.ok) {
-            throw new Error(`Proxy failed with status: ${response.status}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.elements) {
+                return data;
+            }
         }
-
-        return await response.json();
-    } catch (err: any) {
-        clearTimeout(timeout);
-        throw new Error(`Overpass fetch failed: ${err.message || "unknown error"}`);
+    } catch (err) {
+        clearTimeout(timeoutId);
+        console.error("Fallback proxy failed:", err);
     }
+
+    throw new Error("All Overpass mirrors and proxy failed to respond");
 }
 
 export interface OverpassPharmacy {
