@@ -25,13 +25,14 @@ export async function POST(req: NextRequest) {
         const folder = "sahidawa/reports";
 
         // correct signature format — sorted params + secret appended at end
-        const paramsToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
-        const signature = crypto.createHash("sha1").update(paramsToSign).digest("hex");
+        const paramsToSign = `folder=${folder}&signature_algorithm=sha256&timestamp=${timestamp}${apiSecret}`;
+        const signature = crypto.createHash("sha256").update(paramsToSign).digest("hex");
 
         const cloudinaryFormData = new FormData();
         cloudinaryFormData.append("file", file);
         cloudinaryFormData.append("api_key", apiKey);
         cloudinaryFormData.append("timestamp", timestamp);
+        cloudinaryFormData.append("signature_algorithm", "sha256");
         cloudinaryFormData.append("signature", signature);
         cloudinaryFormData.append("folder", folder);
 
