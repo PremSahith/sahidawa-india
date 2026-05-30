@@ -144,7 +144,7 @@ export default function LoginPage() {
                         disabled={loading || isMissingEnvVars}
                         className="mb-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200/50 bg-white/60 px-4 py-3.5 font-medium text-slate-700 shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/80 hover:shadow-[0_8px_20px_rgba(0,0,0,0.04)] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-800/50 dark:text-white dark:hover:bg-slate-800/80 dark:hover:shadow-[0_8px_20px_rgba(0,0,0,0.2)]"
                     >
-                        <FcGoogle className="h-5 w-5" />
+                        <FcGoogle size={20} />
                         Sign in with Google
                     </button>
 
