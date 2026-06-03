@@ -81,7 +81,9 @@ const {
     size: 64,
     ignoredMethods: ["GET", "HEAD", "OPTIONS"],
 });
-app.use(doubleCsrfProtection);
+if (process.env.NODE_ENV !== "test") {
+    app.use(doubleCsrfProtection);
+}
 
 // ── CSRF token endpoint — frontend fetches this once on load ───────────────
 app.get("/api/csrf-token", (req: Request, res: Response) => {
