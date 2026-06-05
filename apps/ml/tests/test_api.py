@@ -3,8 +3,12 @@ from unittest.mock import MagicMock
 import sys
 import os
 
+import importlib.machinery
+
 # Mock faster_whisper before importing app
-sys.modules["faster_whisper"] = MagicMock()
+mock_fw = MagicMock()
+mock_fw.__spec__ = importlib.machinery.ModuleSpec(name="faster_whisper", loader=None)
+sys.modules["faster_whisper"] = mock_fw
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
