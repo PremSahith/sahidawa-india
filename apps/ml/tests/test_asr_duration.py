@@ -10,27 +10,26 @@ import pytest
 from fastapi import HTTPException
 
 if importlib.util.find_spec("noisereduce") is None:
-    sys.modules["noisereduce"] = types.SimpleNamespace(reduce_noise=lambda y, sr: y)
+    sys.modules["noisereduce"] = types.ModuleType("noisereduce")
+    sys.modules["noisereduce"].reduce_noise = lambda y, sr: y
 
 if importlib.util.find_spec("faster_whisper") is None:
-    sys.modules["faster_whisper"] = types.SimpleNamespace(WhisperModel=object)
+    sys.modules["faster_whisper"] = types.ModuleType("faster_whisper")
+    sys.modules["faster_whisper"].WhisperModel = object
 
 if importlib.util.find_spec("soundfile") is None:
-    sys.modules["soundfile"] = types.SimpleNamespace(
-        read=lambda _path: (_ for _ in ()).throw(RuntimeError("stubbed"))
-    )
+    sys.modules["soundfile"] = types.ModuleType("soundfile")
+    sys.modules["soundfile"].read = lambda _path: (_ for _ in ()).throw(RuntimeError("stubbed"))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 if sys.version_info < (3, 10):
-    sys.modules["services.telemetry"] = types.SimpleNamespace(
-        get_audio_duration_seconds=lambda audio_data, sample_rate: len(audio_data)
-        / float(sample_rate),
-        get_memory_usage_mb=lambda: 0.0,
-        get_telemetry_logger=lambda: None,
-        log_transcription_finished=lambda **_kwargs: None,
-        start_timer=lambda: 0.0,
-    )
+    sys.modules["services.telemetry"] = types.ModuleType("services.telemetry")
+    sys.modules["services.telemetry"].get_audio_duration_seconds = lambda audio_data, sample_rate: len(audio_data) / float(sample_rate)
+    sys.modules["services.telemetry"].get_memory_usage_mb = lambda: 0.0
+    sys.modules["services.telemetry"].get_telemetry_logger = lambda: None
+    sys.modules["services.telemetry"].log_transcription_finished = lambda **_kwargs: None
+    sys.modules["services.telemetry"].start_timer = lambda: 0.0
 
 from routers import asr as asr_router
 
