@@ -189,31 +189,30 @@ def generate_post_with_gemini(pr: dict, tier_display: str, tier_desc: str) -> st
     gemini_api_key = get_env_or_exit("GEMINI_API_KEY")
 
     system_prompt = (
-        f"You are the social media voice of '{PROJECT_NAME}', {PROJECT_TAGLINE}. "
-        "Write an authentic, enthusiastic LinkedIn post to celebrate a contributor. "
-        "Keep it professional but warm. Use emojis appropriately. "
-        "The post MUST feel human-written — never generic or AI-sounding. "
-        "Never start with 'I am' or 'We are'. Be creative with the opening line each time. "
-        "The post should be 150-250 words. Do NOT include hashtags — they will be added separately."
+        f"You are the core maintainer of '{PROJECT_NAME}'. "
+        "Write a short, heartfelt, and genuine LinkedIn post thanking a contributor. "
+        "It MUST sound like a real human engineer expressing sincere gratitude from the heart. "
+        "Do not use corporate buzzwords. Keep it concise, high-quality, and impactful. "
+        "Use minimal formatting and very few emojis. It should feel like a personal shoutout, not a bot. "
+        "Never start with 'I am' or 'We are'."
     )
 
     user_prompt = (
-        f"Write a LinkedIn shoutout post celebrating this open-source contribution:\n\n"
-        f"Contributor GitHub Username: @{pr['author']}\n"
+        f"Write a short, genuine LinkedIn shoutout for this contributor:\n\n"
+        f"Contributor: {pr['author']} (GitHub Profile: https://github.com/{pr['author']})\n"
         f"PR Title: {pr['title']}\n"
         f"PR Number: #{pr['number']}\n"
-        f"Tier: {tier_display} ({tier_desc} contribution)\n"
+        f"Tier: {tier_display}\n"
         f"PR Link: {pr['url']}\n"
         f"Project: {PROJECT_NAME} — {PROJECT_TAGLINE}\n"
         f"PR Description: {pr['body'] if pr['body'] else 'Not provided'}\n\n"
-        f"Requirements:\n"
-        f"- Celebrate @{pr['author']} personally\n"
-        f"- Explain what this PR does in simple terms\n"
-        f"- Mention the '{tier_display}' difficulty tackled\n"
-        f"- Invite other developers to contribute to SahiDawa\n"
-        f"- End with a call-to-action to the PR or repo\n"
-        f"- Tone: warm, inspiring, community-focused\n"
-        f"- Do NOT mention any monetary reward"
+        f"CRITICAL REQUIREMENTS:\n"
+        f"1. Start by directly thanking and tagging the contributor as 'GitHub Contributor: @{pr['author']}' in a warm, personal way.\n"
+        f"2. Mention briefly what they built ({pr['title']}) and why it's important for the project.\n"
+        f"3. Make them feel truly valued. Tell them their hard work is making a real difference in this {tier_display} task. Motivate them to keep solving issues.\n"
+        f"4. End by warmly welcoming new developers to join the journey (GSSoC2026), with the repo link: {PROJECT_GITHUB_URL}\n"
+        f"5. Keep the text short and easy to read. Do NOT use heavy bullet points, bolding, or too many emojis.\n"
+        f"6. Do NOT include hashtags at the end (they are added automatically later)."
     )
 
     url = (
@@ -223,7 +222,7 @@ def generate_post_with_gemini(pr: dict, tier_display: str, tier_desc: str) -> st
     payload = {
         "systemInstruction": {"parts": [{"text": system_prompt}]},
         "contents": [{"parts": [{"text": user_prompt}]}],
-        "generationConfig": {"temperature": 0.9, "maxOutputTokens": 400},
+        "generationConfig": {"temperature": 0.8, "maxOutputTokens": 800},
         "safetySettings": [
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -258,17 +257,15 @@ def generate_post_with_gemini(pr: dict, tier_display: str, tier_desc: str) -> st
         return _static_fallback(pr, tier_display)
 
 
-def _static_fallback(pr: dict, tier_display: str) -> str:
     return (
-        f"🌟 Celebrating an incredible contribution to {PROJECT_NAME}!\n\n"
-        f"Massive shoutout to @{pr['author']} for landing PR #{pr['number']} — "
-        f'"{pr["title"]}" — a {tier_display} contribution to our codebase!\n\n'
-        f"{PROJECT_NAME} is {PROJECT_TAGLINE}. With 200+ contributors from across the country, "
-        "every merged PR brings us closer to making quality healthcare information accessible "
-        "to every Indian citizen.\n\n"
-        f"Thank you, @{pr['author']}, for your dedication and technical expertise!\n\n"
-        f"👉 Check it out: {pr['url']}\n"
-        f"🌐 Join us: {PROJECT_GITHUB_URL}"
+        f"A massive thank you from the heart to our contributor, @{pr['author']} (https://github.com/{pr['author']}).\n\n"
+        f"They just landed PR #{pr['number']}: \"{pr['title']}\". "
+        f"This was a {tier_display} contribution, and the effort put into it is truly inspiring. "
+        f"Your work is directly helping {PROJECT_NAME} become a better platform for everyone. We deeply value your time and technical expertise. "
+        f"Keep crushing those issues, @{pr['author']}!\n\n"
+        f"If anyone else wants to make a real impact and join our open-source journey for GSSoC2026, we'd love to welcome you.\n\n"
+        f"Repo: {PROJECT_GITHUB_URL}\n"
+        f"View PR: {pr['url']}"
     )
 
 
@@ -280,8 +277,6 @@ def assemble_final_post(ai_content: str, pr: dict) -> str:
     return (
         f"{clean}\n\n"
         f"─────────────────────\n"
-        f"🔗 PR: {pr['url']}\n"
-        f"⭐ Star & Contribute: {PROJECT_GITHUB_URL}\n\n"
         f"{PROJECT_HASHTAGS}"
     )
 
