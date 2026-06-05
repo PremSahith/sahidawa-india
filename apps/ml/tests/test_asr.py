@@ -1,5 +1,6 @@
 import pytest
 import io
+import shutil
 import wave
 import numpy as np
 from fastapi.testclient import TestClient
@@ -14,6 +15,8 @@ from routers import asr as asr_router
 client = TestClient(app)
 
 FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+
+FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -60,8 +63,32 @@ def test_asr_router_registered():
 
 # ── 2. Response shape ─────────────────────────────────────────────────────────
 
-def test_response_has_required_fields():
+def _mock_pipeline(monkeypatch):
+    """Monkeypatches ffmpeg, soundfile and model for unit-level tests."""
+    class FakeModel:
+        def transcribe(self, audio, **kwargs):
+            return [SimpleNamespace(text="hello")], SimpleNamespace(
+                language="en",
+                language_probability=0.99,
+            )
+
+    monkeypatch.setattr(asr_router, "get_model", lambda: FakeModel())
+    monkeypatch.setattr(
+        asr_router.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stderr=b""),
+    )
+    monkeypatch.setattr(
+        asr_router.sf,
+        "read",
+        lambda *args, **kwargs: (np.zeros(16000, dtype=np.float32), 16000),
+    )
+    monkeypatch.setattr(asr_router.nr, "reduce_noise", lambda y, sr: y)
+
+
+def test_response_has_required_fields(monkeypatch):
     """All four response fields must be present on a successful request."""
+    _mock_pipeline(monkeypatch)
     response = client.post(
         "/asr/transcribe",
         files={"file": ("test.wav", make_silent_wav(), "audio/wav")},
@@ -74,7 +101,8 @@ def test_response_has_required_fields():
     assert "filename" in data,              "Missing field: filename"
 
 
-def test_transcription_is_string():
+def test_transcription_is_string(monkeypatch):
+    _mock_pipeline(monkeypatch)
     response = client.post(
         "/asr/transcribe",
         files={"file": ("test.wav", make_silent_wav(), "audio/wav")},
@@ -82,7 +110,8 @@ def test_transcription_is_string():
     assert isinstance(response.json()["transcription"], str)
 
 
-def test_language_probability_in_range():
+def test_language_probability_in_range(monkeypatch):
+    _mock_pipeline(monkeypatch)
     response = client.post(
         "/asr/transcribe",
         files={"file": ("test.wav", make_silent_wav(), "audio/wav")},
@@ -91,7 +120,8 @@ def test_language_probability_in_range():
     assert 0.0 <= prob <= 1.0, f"language_probability out of range: {prob}"
 
 
-def test_filename_echoed_back():
+def test_filename_echoed_back(monkeypatch):
+    _mock_pipeline(monkeypatch)
     response = client.post(
         "/asr/transcribe",
         files={"file": ("my_audio.wav", make_silent_wav(), "audio/wav")},
@@ -201,8 +231,8 @@ def test_health_endpoint():
 # Run locally after downloading real audio samples.
 
 @pytest.mark.skipif(
-    not os.path.exists(os.path.join(FIXTURES_DIR, "hindi_sample.wav")),
-    reason="Hindi fixture not found",
+    not os.path.exists(os.path.join(FIXTURES_DIR, "hindi_sample.wav")) or not FFMPEG_AVAILABLE,
+    reason="Hindi fixture not found or ffmpeg not installed",
 )
 def test_hindi_language_detection():
     """Real Hindi audio must be detected as 'hi' or 'ur' (Whisper limitation)."""
@@ -217,8 +247,8 @@ def test_hindi_language_detection():
 
 
 @pytest.mark.skipif(
-    not os.path.exists(os.path.join(FIXTURES_DIR, "tamil_sample.wav")),
-    reason="Tamil fixture not found",
+    not os.path.exists(os.path.join(FIXTURES_DIR, "tamil_sample.wav")) or not FFMPEG_AVAILABLE,
+    reason="Tamil fixture not found or ffmpeg not installed",
 )
 def test_tamil_language_detection():
     """Real Tamil audio must be detected as 'ta'."""
@@ -232,8 +262,8 @@ def test_tamil_language_detection():
 
 
 @pytest.mark.skipif(
-    not os.path.exists(os.path.join(FIXTURES_DIR, "bengali_sample.wav")),
-    reason="Bengali fixture not found",
+    not os.path.exists(os.path.join(FIXTURES_DIR, "bengali_sample.wav")) or not FFMPEG_AVAILABLE,
+    reason="Bengali fixture not found or ffmpeg not installed",
 )
 def test_bengali_language_detection():
     """Real Bengali audio must be detected as 'bn'."""

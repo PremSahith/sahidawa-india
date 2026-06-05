@@ -1,6 +1,7 @@
 import io
 import os
 import sys
+import wave
 from types import SimpleNamespace
 
 import numpy as np
@@ -13,6 +14,18 @@ from routers import asr
 
 
 client = TestClient(app)
+
+
+def make_silent_wav(duration_seconds: float = 1.0, sample_rate: int = 16000) -> bytes:
+    """Creates a valid PCM WAV file with silence."""
+    buffer = io.BytesIO()
+    frame_count = int(duration_seconds * sample_rate)
+    with wave.open(buffer, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(b"\x00\x00" * frame_count)
+    return buffer.getvalue()
 
 
 class DummyTranscriber:
@@ -51,7 +64,7 @@ def test_language_hint_is_normalized_and_passed_to_whisper(monkeypatch):
 
     response = client.post(
         "/asr/transcribe",
-        files={"file": ("voice.wav", io.BytesIO(b"fake-audio"), "audio/wav")},
+        files={"file": ("voice.wav", io.BytesIO(make_silent_wav()), "audio/wav")},
         data={"language": "ta-IN"},
     )
 
@@ -64,7 +77,7 @@ def test_missing_language_hint_keeps_auto_detection(monkeypatch):
 
     response = client.post(
         "/asr/transcribe",
-        files={"file": ("voice.wav", io.BytesIO(b"fake-audio"), "audio/wav")},
+        files={"file": ("voice.wav", io.BytesIO(make_silent_wav()), "audio/wav")},
     )
 
     assert response.status_code == 200
