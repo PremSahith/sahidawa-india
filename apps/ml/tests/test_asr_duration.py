@@ -1,5 +1,6 @@
 import io
 import importlib.util
+import importlib.machinery
 import os
 import sys
 import types
@@ -9,22 +10,27 @@ import numpy as np
 import pytest
 from fastapi import HTTPException
 
+def mock_module(name: str) -> types.ModuleType:
+    mod = types.ModuleType(name)
+    mod.__spec__ = importlib.machinery.ModuleSpec(name=name, loader=None)
+    return mod
+
 if importlib.util.find_spec("noisereduce") is None:
-    sys.modules["noisereduce"] = types.ModuleType("noisereduce")
+    sys.modules["noisereduce"] = mock_module("noisereduce")
     sys.modules["noisereduce"].reduce_noise = lambda y, sr: y
 
 if importlib.util.find_spec("faster_whisper") is None:
-    sys.modules["faster_whisper"] = types.ModuleType("faster_whisper")
+    sys.modules["faster_whisper"] = mock_module("faster_whisper")
     sys.modules["faster_whisper"].WhisperModel = object
 
 if importlib.util.find_spec("soundfile") is None:
-    sys.modules["soundfile"] = types.ModuleType("soundfile")
+    sys.modules["soundfile"] = mock_module("soundfile")
     sys.modules["soundfile"].read = lambda _path: (_ for _ in ()).throw(RuntimeError("stubbed"))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 if sys.version_info < (3, 10):
-    sys.modules["services.telemetry"] = types.ModuleType("services.telemetry")
+    sys.modules["services.telemetry"] = mock_module("services.telemetry")
     sys.modules["services.telemetry"].get_audio_duration_seconds = lambda audio_data, sample_rate: len(audio_data) / float(sample_rate)
     sys.modules["services.telemetry"].get_memory_usage_mb = lambda: 0.0
     sys.modules["services.telemetry"].get_telemetry_logger = lambda: None
