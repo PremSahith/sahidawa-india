@@ -361,6 +361,208 @@ def assemble_final_post(ai_content: str, pr: dict) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 3 — Send to Make.com Webhook (Make posts to LinkedIn Company Page)
 # ─────────────────────────────────────────────────────────────────────────────
+def generate_and_upload_banner(pr: dict) -> str:
+    """
+    Generates a beautiful GSSoC Star Contributor shoutout banner image
+    using Pillow, and uploads it to Catbox.moe (with tmpfiles.org fallback).
+    Returns the uploaded image URL, or falls back to githubassets OG image on failure.
+    """
+    from PIL import Image, ImageDraw, ImageFont, ImageFilter
+    from io import BytesIO
+    import requests
+
+    width, height = 1200, 630
+    
+    try:
+        # 1. Base image with gradient
+        base = Image.new("RGBA", (width, height))
+        pixels = base.load()
+        # Vibe: Sleek dark-mode tech background (indigo to deep violet)
+        left_color = (13, 14, 25)
+        right_color = (30, 16, 60)
+        
+        for x in range(width):
+            r = int(left_color[0] + (right_color[0] - left_color[0]) * (x / width))
+            g = int(left_color[1] + (right_color[1] - left_color[1]) * (x / width))
+            b = int(left_color[2] + (right_color[2] - left_color[2]) * (x / width))
+            for y in range(height):
+                pixels[x, y] = (r, g, b, 255)
+                
+        draw = ImageDraw.Draw(base)
+        
+        # Add abstract glowing background blobs
+        glow_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        glow_draw = ImageDraw.Draw(glow_layer)
+        glow_draw.ellipse((800, -200, 1400, 400), fill=(235, 122, 38, 30))  # Orange GSSoC glow
+        glow_draw.ellipse((-100, 300, 400, 800), fill=(100, 50, 255, 25))  # Indigo glow
+        glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(80))
+        base = Image.alpha_composite(base, glow_layer)
+        draw = ImageDraw.Draw(base)
+
+        # 2. Load custom fonts
+        font_bold_url = "https://cdn.jsdelivr.net/fontsource/fonts/outfit@latest/latin-700-normal.ttf"
+        font_reg_url = "https://cdn.jsdelivr.net/fontsource/fonts/outfit@latest/latin-400-normal.ttf"
+        
+        bold_font_data = None
+        try:
+            bold_font_data = requests.get(font_bold_url, timeout=8).content
+            reg_font_data = requests.get(font_reg_url, timeout=8).content
+            font_badge = ImageFont.truetype(BytesIO(bold_font_data), 26)
+            font_title = ImageFont.truetype(BytesIO(bold_font_data), 54)
+            font_body = ImageFont.truetype(BytesIO(reg_font_data), 32)
+            font_repo = ImageFont.truetype(BytesIO(bold_font_data), 24)
+            font_tagline = ImageFont.truetype(BytesIO(reg_font_data), 20)
+        except Exception as fe:
+            print(f"⚠️ Font download failed ({fe}), using default fonts")
+            font_badge = font_title = font_body = font_repo = font_tagline = ImageFont.load_default()
+
+        # 3. Contributor Avatar
+        avatar_url = pr.get("author_avatar")
+        if not avatar_url:
+            avatar_url = f"https://github.com/{pr['author']}.png"
+            
+        try:
+            print(f"Downloading avatar from {avatar_url}")
+            r = requests.get(avatar_url, timeout=8)
+            r.raise_for_status()
+            avatar = Image.open(BytesIO(r.content)).convert("RGBA")
+        except Exception as ae:
+            print(f"⚠️ Avatar download failed ({ae}), generating fallback letter avatar")
+            avatar = Image.new("RGBA", (200, 200), (255, 255, 255, 0))
+            av_draw = ImageDraw.Draw(avatar)
+            av_draw.ellipse((0, 0, 200, 200), fill=(235, 122, 38, 255))
+            # Draw first letter of author name
+            first_letter = pr['author'][0].upper() if pr.get('author') else "C"
+            if bold_font_data:
+                try:
+                    av_draw.text((70, 40), first_letter, fill=(255, 255, 255, 255), font=ImageFont.truetype(BytesIO(bold_font_data), 100))
+                except Exception:
+                    av_draw.text((80, 70), first_letter, fill=(255, 255, 255, 255))
+            else:
+                av_draw.text((80, 70), first_letter, fill=(255, 255, 255, 255))
+                
+        avatar = avatar.resize((200, 200), Image.Resampling.LANCZOS)
+        
+        # Circular mask for avatar
+        mask = Image.new("L", (200, 200), 0)
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.ellipse((0, 0, 200, 200), fill=255)
+        
+        # Draw avatar borders/rings on base image
+        draw.ellipse((85, 200, 315, 430), outline=(235, 122, 38, 255), width=8)  # Orange border
+        draw.ellipse((92, 207, 308, 423), outline=(255, 215, 0, 255), width=3)   # Gold inner ring
+        
+        avatar_img = Image.new("RGBA", (200, 200), (0, 0, 0, 0))
+        avatar_img.paste(avatar, (0, 0), mask=mask)
+        base.paste(avatar_img, (100, 215), mask=avatar_img)
+
+        # 4. Text Content (Right column, starting X = 360)
+        # GSSoC Badge Pill
+        badge_text = "⚡ GSSoC 2026 Star Contributor"
+        try:
+            bbox = draw.textbbox((0, 0), badge_text, font=font_badge)
+            tw = bbox[2] - bbox[0]
+            th = bbox[3] - bbox[1]
+        except Exception:
+            tw, th = 340, 30
+            
+        badge_padding_x, badge_padding_y = 20, 10
+        badge_w = tw + badge_padding_x * 2
+        badge_h = th + badge_padding_y * 2
+        badge_x, badge_y = 360, 120
+        
+        draw.rounded_rectangle(
+            [badge_x, badge_y, badge_x + badge_w, badge_y + badge_h],
+            radius=badge_h // 2,
+            fill=(235, 122, 38, 40),
+            outline=(235, 122, 38, 255),
+            width=2
+        )
+        draw.text((badge_x + badge_padding_x, badge_y + badge_padding_y - 2), badge_text, fill=(255, 165, 0, 255), font=font_badge)
+
+        # Headline
+        headline_text = f"Huge thanks, @{pr['author']}! 🎉"
+        draw.text((360, 195), headline_text, fill=(255, 255, 255, 255), font=font_title)
+
+        # Body appreciation text
+        body_line1 = "For making outstanding contributions to SahiDawa."
+        max_title_len = 45
+        pr_title = pr['title']
+        if len(pr_title) > max_title_len:
+            pr_title = pr_title[:max_title_len].strip() + "..."
+        body_line2 = f"Merged PR #{pr['number']}: \"{pr_title}\""
+        
+        draw.text((360, 280), body_line1, fill=(200, 200, 220, 255), font=font_body)
+        draw.text((360, 330), body_line2, fill=(255, 215, 0, 255), font=font_body)
+
+        # 5. Project Logo & Info in footer
+        logo_url = "https://avatars.githubusercontent.com/u/244338981"
+        try:
+            lr = requests.get(logo_url, timeout=5)
+            if lr.status_code == 200:
+                logo = Image.open(BytesIO(lr.content)).convert("RGBA")
+                logo = logo.resize((80, 80), Image.Resampling.LANCZOS)
+                logo_mask = Image.new("L", (80, 80), 0)
+                logo_mask_draw = ImageDraw.Draw(logo_mask)
+                logo_mask_draw.ellipse((0, 0, 80, 80), fill=255)
+                
+                # Draw logo ring
+                draw.ellipse((1015, 475, 1105, 565), outline=(255, 255, 255, 200), width=4)
+                
+                logo_img = Image.new("RGBA", (80, 80), (0, 0, 0, 0))
+                logo_img.paste(logo, (0, 0), mask=logo_mask)
+                base.paste(logo_img, (1020, 480), mask=logo_img)
+        except Exception as le:
+            print(f"⚠️ SahiDawa logo render skipped: {le}")
+
+        draw.text((360, 485), "SahiDawa / RatLoopz", fill=(255, 255, 255, 255), font=font_repo)
+        draw.text((360, 520), "India's open-source medicine safety platform 🇮🇳", fill=(150, 150, 170, 255), font=font_tagline)
+
+        # Save buffer
+        img_buffer = BytesIO()
+        base.convert("RGB").save(img_buffer, "PNG")
+        img_data = img_buffer.getvalue()
+
+        # 6. Upload to Catbox (Primary)
+        print("📤 Uploading generated image to Catbox...")
+        try:
+            files = {
+                'reqtype': (None, 'fileupload'),
+                'fileToUpload': ('shoutout.png', img_data, 'image/png')
+            }
+            res = requests.post('https://catbox.moe/user/api.php', files=files, timeout=15)
+            if res.status_code == 200 and "files.catbox.moe" in res.text:
+                uploaded_url = res.text.strip()
+                print(f"✅ Successfully uploaded to Catbox: {uploaded_url}")
+                return uploaded_url
+        except Exception as ce:
+            print(f"⚠️ Catbox upload failed ({ce}). Trying tmpfiles.org fallback...")
+
+        # 7. Upload to tmpfiles.org (Secondary Fallback)
+        try:
+            files = {
+                'file': ('shoutout.png', img_data, 'image/png')
+            }
+            res = requests.post('https://tmpfiles.org/api/v1/upload', files=files, timeout=15)
+            if res.status_code == 200:
+                json_resp = res.json()
+                if json_resp.get("status") == "success":
+                    raw_url = json_resp["data"]["url"]
+                    uploaded_url = raw_url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/")
+                    print(f"✅ Successfully uploaded to tmpfiles.org: {uploaded_url}")
+                    return uploaded_url
+        except Exception as te:
+            print(f"⚠️ tmpfiles.org upload failed ({te})")
+
+    except Exception as e:
+        print(f"❌ Error during image generation process: {e}")
+
+    # Fallback to github open graph if everything fails
+    fallback_url = f"https://opengraph.githubassets.com/1/{pr['repo']}/pull/{pr['number']}"
+    print(f"⚠️ Using GitHub OpenGraph fallback URL: {fallback_url}")
+    return fallback_url
+
+
 def send_to_make_webhook(post_text: str, pr: dict) -> None:
     """
     Sends a JSON payload to Make.com webhook.
@@ -380,15 +582,8 @@ def send_to_make_webhook(post_text: str, pr: dict) -> None:
     labels = pr["labels"].lower()
     tier = "level:critical" if "level:critical" in labels else "level:advanced"
 
-    import urllib.parse
-    
-    # Generate a dynamic Thank You banner image URL
-    # Use official GitHub PR OpenGraph image
-    # This solves 3 critical bugs:
-    # 1. Make.com URL parser crashing on nested paths
-    # 2. LinkedIn API rejecting 302 redirects (which Microlink uses)
-    # 3. Third-party generators forcing logos (Vercel) or dropping avatars
-    image_url = f"https://opengraph.githubassets.com/1/{pr['repo']}/pull/{pr['number']}"
+    # Generate a dynamic Thank You banner image URL using local Pillow and Catbox
+    image_url = generate_and_upload_banner(pr)
     
     payload = {
         "post_text": post_text,
