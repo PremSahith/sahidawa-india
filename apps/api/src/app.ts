@@ -31,6 +31,11 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
 // Execute configuration validation after import completes
 validateMlServiceConfig();
 
+if (process.env.NODE_ENV !== "development" && !process.env.CSRF_SECRET) {
+    logger.error("Missing CSRF_SECRET environment variable. The default fallback is predictable and insecure.");
+    process.exit(1);
+}
+
 // ── Feature & Route Imports ────────────────────────────────────────────────
 import cors from "cors";
 import helmet from "helmet";
