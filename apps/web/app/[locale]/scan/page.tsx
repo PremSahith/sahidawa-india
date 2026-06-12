@@ -1250,6 +1250,7 @@ export default function ScanPage() {
                             <>
                                 <button
                                     onClick={handleDismissResult}
+                                    aria-label="Close"
                                     className="fixed top-4 right-4 z-40 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
                                 >
                                     <X size={24} />
