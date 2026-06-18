@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { verifyMedicine, checkLasaConflicts, type VerifyResult, type LasaMatch } from "@/lib/api";
 import { recordScanHistory } from "@/lib/scanHistoryUtils";
 import { saveScanHistory } from "@/lib/db/scanHistory";
+import { queueScan } from "@/lib/offlineStorage";
 
 export function useMedicineVerification(
     abortControllerRef: RefObject<AbortController | null>,
@@ -100,6 +101,31 @@ export function useMedicineVerification(
                 if (errorMsg === "Request was cancelled.") {
                     return;
                 }
+
+                // --- Background Sync Offline Queuing ---
+                if (
+                    !navigator.onLine ||
+                    errorMsg.toLowerCase().includes("fetch") ||
+                    errorMsg.toLowerCase().includes("network") ||
+                    errorMsg.toLowerCase().includes("unavailable")
+                ) {
+                    try {
+                        await queueScan(normalizedBatch);
+                        if ("serviceWorker" in navigator) {
+                            const reg = await navigator.serviceWorker.ready;
+                            if ("sync" in reg) {
+                                await (reg as any).sync.register("sync-scans");
+                            }
+                        }
+                        toast.info(
+                            "You are offline. Scan saved and will verify automatically when connection is restored.",
+                            { duration: 5000 }
+                        );
+                    } catch (syncErr) {
+                        console.error("Background sync registration failed:", syncErr);
+                    }
+                }
+
                 setVerifyError(errorMsg);
                 void saveScanHistory({
                     id: crypto.randomUUID(),

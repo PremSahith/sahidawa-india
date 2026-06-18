@@ -20,6 +20,16 @@ interface SahiDawaDB extends DBSchema {
         key: string;
         value: unknown;
     };
+    pending_scans: {
+        key: number;
+        value: {
+            id?: number;
+            barcode: string;
+            apiUrl: string;
+            createdAt: number;
+            retries: number;
+        };
+    };
 }
 
 const DB_NAME = "sahidawa-offline-db";
@@ -43,6 +53,12 @@ function getDB() {
                 }
                 if (!db.objectStoreNames.contains("draft_form")) {
                     db.createObjectStore("draft_form");
+                }
+                if (!db.objectStoreNames.contains("pending_scans")) {
+                    db.createObjectStore("pending_scans", {
+                        keyPath: "id",
+                        autoIncrement: true,
+                    });
                 }
             },
         });
@@ -116,4 +132,43 @@ export async function incrementRetry(id: number) {
 export async function getPendingCount() {
     const all = await getPendingReports();
     return all.length;
+}
+
+// --- Scans Queue ---
+
+export async function queueScan(barcode: string) {
+    const db = await getDB();
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000")
+        .trim()
+        .replace(/\/+$/, "");
+    return db.add("pending_scans", {
+        barcode,
+        apiUrl,
+        createdAt: Date.now(),
+        retries: 0,
+    });
+}
+
+export async function getPendingScans() {
+    try {
+        const db = await getDB();
+        return db.getAll("pending_scans");
+    } catch (err) {
+        console.error("getPendingScans failed:", err);
+        return [];
+    }
+}
+
+export async function removePendingScan(id: number) {
+    const db = await getDB();
+    await db.delete("pending_scans", id);
+}
+
+export async function incrementScanRetry(id: number) {
+    const db = await getDB();
+    const record = await db.get("pending_scans", id);
+    if (record) {
+        record.retries += 1;
+        await db.put("pending_scans", record);
+    }
 }

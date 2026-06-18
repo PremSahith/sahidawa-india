@@ -44,7 +44,6 @@ const PRECACHE_PAGES = [
     "/ta/offline",
 ];
 
-
 // ---------------------------------------------------------------------------
 // INSTALL — precache core shell pages
 // ---------------------------------------------------------------------------
@@ -378,6 +377,74 @@ async function navigateWithOfflineFallback(request) {
             { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } }
         );
     }
+}
+
+// ---------------------------------------------------------------------------
+// BACKGROUND SYNC — offline medicine verification
+// ---------------------------------------------------------------------------
+self.addEventListener("sync", (event) => {
+    if (event.tag === "sync-scans") {
+        event.waitUntil(processPendingScans());
+    }
+});
+
+async function processPendingScans() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("sahidawa-offline-db", 1);
+        request.onsuccess = async (e) => {
+            const db = e.target.result;
+            // Ensure store exists before trying to access
+            if (!db.objectStoreNames.contains("pending_scans")) return resolve();
+
+            const transaction = db.transaction("pending_scans", "readonly");
+            const store = transaction.objectStore("pending_scans");
+            const getAllRequest = store.getAll();
+
+            getAllRequest.onsuccess = async () => {
+                const scans = getAllRequest.result;
+                if (!scans || scans.length === 0) return resolve();
+
+                for (const scan of scans) {
+                    try {
+                        const verifyUrl = `${scan.apiUrl}/api/verify`;
+                        const response = await fetch(verifyUrl, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ batchNumber: scan.barcode }),
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.status === "counterfeit" || data.alert) {
+                                self.registration.showNotification("Offline Scan Alert!", {
+                                    body: `The medicine you scanned offline (${scan.barcode}) is flagged as counterfeit or has active alerts!`,
+                                    icon: "/icons/icon-192.png",
+                                    badge: "/icons/icon-192.png",
+                                    requireInteraction: true,
+                                    data: { url: "/en/alerts" },
+                                });
+                            } else {
+                                self.registration.showNotification("Scan Synced", {
+                                    body: `Offline scan for ${scan.barcode} was verified successfully.`,
+                                    icon: "/icons/icon-192.png",
+                                });
+                            }
+
+                            // Delete from DB since it succeeded
+                            db.transaction("pending_scans", "readwrite")
+                                .objectStore("pending_scans")
+                                .delete(scan.id);
+                        }
+                    } catch (error) {
+                        console.error("[SW] Sync failed for scan:", scan.id, error);
+                    }
+                }
+                resolve();
+            };
+            getAllRequest.onerror = () => reject();
+        };
+        request.onerror = () => reject();
+    });
 }
 
 // ---------------------------------------------------------------------------
