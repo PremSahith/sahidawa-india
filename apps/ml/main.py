@@ -9,7 +9,6 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
 load_dotenv()
-
 setup_tracing()
 RequestsInstrumentor().instrument()
 
