@@ -125,10 +125,11 @@ function parseAndPinRequirements(content) {
 
 function runAudit() {
     if (!checkPipAudit()) {
-        log(c.red, "✖", "pip-audit is not installed.");
-        console.log(`  ${c.bold}Please install pip-audit in your environment:${c.reset}`);
+        log(c.yellow, "⚠", "pip-audit is not installed.");
+        console.log(`  ${c.bold}If you are modifying Python code, please install it:${c.reset}`);
         console.log(`  pip install pip-audit\n`);
-        process.exit(1);
+        log(c.yellow, "⚠", "Skipping Python audit gracefully so frontend developers are not blocked.");
+        process.exit(0);
     }
 
     let failed = false;
