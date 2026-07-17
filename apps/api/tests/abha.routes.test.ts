@@ -1,6 +1,6 @@
 process.env.SUPABASE_URL = process.env.SUPABASE_URL || "http://localhost:54321";
 process.env.SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "test-anon-key";
-(global as any).WebSocket = (global as any).WebSocket || class {};
+(globalThis as unknown as { WebSocket: any }).WebSocket = (globalThis as unknown as { WebSocket: any }).WebSocket || class {};
 
 const mockPkceSessions = new Map<string, { codeVerifier: string; userId: string }>();
 const mockStoreAbhaPkceSession = jest.fn(
@@ -29,12 +29,12 @@ jest.mock("../src/db/client", () => ({
 }));
 
 jest.mock("../src/middleware/auth", () => ({
-    requireAuth: (req: any, _res: any, next: any) => {
+    requireAuth: (req: Request, _res: Response, next: NextFunction) => {
         req.user = { id: "test-user-uuid", role: "user", email: "user@example.com" };
         next();
     },
-    optionalAuth: (_req: any, _res: any, next: any) => next(),
-    requireRole: () => (_req: any, _res: any, next: any) => next(),
+    optionalAuth: (_req: Request, _res: Response, next: NextFunction) => next(),
+    requireRole: () => (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
 jest.mock("../src/services/abha.service", () => ({
@@ -59,6 +59,8 @@ jest.mock("../src/services/abhaPkceSession.service", () => ({
 import request from "supertest";
 import express from "express";
 import abhaRouter from "../src/routes/abha";
+import { Request, Response, NextFunction } from "express";
+
 
 const app = express();
 app.use(express.json());

@@ -47,14 +47,14 @@ jest.mock("../src/utils/redis", () => ({
 }));
 
 jest.mock("../src/middleware/auth", () => ({
-    requireAuth: (req: any, _res: any, next: any) => {
+    requireAuth: (req: Request, _res: Response, next: NextFunction) => {
         req.user = { id: "test-user-id", email: "test@example.com", role: "user" };
         next();
     },
-    optionalAuth: (_req: any, _res: any, next: any) => next(),
+    optionalAuth: (_req: Request, _res: Response, next: NextFunction) => next(),
     requireRole:
         (..._roles: string[]) =>
-        (_req: any, _res: any, next: any) =>
+        (_req: Request, _res: Response, next: NextFunction) =>
             next(),
     AuthenticatedRequest: Object,
 }));
@@ -63,6 +63,8 @@ import request from "supertest";
 import express from "express";
 import medicineSchedulesRouter from "../src/routes/medicineSchedules";
 import { redisClient } from "../src/utils/redis";
+import { Request, Response, NextFunction } from "express";
+
 
 const app = express();
 app.use(express.json());

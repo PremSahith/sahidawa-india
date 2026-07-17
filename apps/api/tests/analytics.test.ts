@@ -14,7 +14,7 @@ jest.mock("../src/db/client", () => ({
 let mockAuthRole: "admin" | "moderator" | "user" = "admin";
 
 jest.mock("../src/middleware/auth", () => ({
-    requireAuth: (req: any, res: any, next: any) => {
+    requireAuth: (req: Request, res: Response, next: NextFunction) => {
         const token = req.headers.authorization?.slice(7);
         if (!token) {
             return res.status(401).json({ error: "Unauthorized: Missing access token" });
@@ -28,7 +28,7 @@ jest.mock("../src/middleware/auth", () => ({
     },
     requireRole:
         (...roles: string[]) =>
-        (req: any, res: any, next: any) => {
+        (req: Request, res: Response, next: NextFunction) => {
             if (!req.user) {
                 return res.status(401).json({ error: "Authentication is required" });
             }
@@ -37,10 +37,12 @@ jest.mock("../src/middleware/auth", () => ({
             }
             return next();
         },
-    optionalAuth: (_req: any, _res: any, next: any) => next(),
+    optionalAuth: (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
 import { supabase } from "../src/db/client";
+import { Request, Response, NextFunction } from "express";
+
 
 type MockScan = {
     latitude: string;

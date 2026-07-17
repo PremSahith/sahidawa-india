@@ -3,7 +3,7 @@ process.env.SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "test-anon-key"
 process.env.SUPABASE_SERVICE_ROLE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY || "test-service-role-key";
 
-(global as any).WebSocket = (global as any).WebSocket || class {};
+(globalThis as unknown as { WebSocket: any }).WebSocket = (globalThis as unknown as { WebSocket: any }).WebSocket || class {};
 
 jest.mock("../src/db/client", () => ({
     supabase: {
@@ -12,12 +12,12 @@ jest.mock("../src/db/client", () => ({
 }));
 
 jest.mock("../src/middleware/auth", () => ({
-    requireAuth: (req: any, _res: any, next: any) => {
+    requireAuth: (req: Request, _res: Response, next: NextFunction) => {
         req.user = { id: "test-admin-uuid", role: "admin", email: "admin@example.com" };
         next();
     },
-    optionalAuth: (_req: any, _res: any, next: any) => next(),
-    requireRole: () => (_req: any, _res: any, next: any) => next(),
+    optionalAuth: (_req: Request, _res: Response, next: NextFunction) => next(),
+    requireRole: () => (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
 jest.mock("../src/services/audit.service", () => ({
@@ -28,6 +28,8 @@ import request from "supertest";
 import app from "../src/app";
 import { supabase } from "../src/db/client";
 import { logAdminAction } from "../src/services/audit.service";
+import { Request, Response, NextFunction } from "express";
+
 
 const PHARMACY_UUID_1 = "00000000-0000-4000-8000-000000000002";
 const PHARMACY_UUID_2 = "00000000-0000-4000-8000-000000000003";

@@ -3,7 +3,7 @@ process.env.SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "test-anon-key"
 // Make DNS lookup timeouts fast in tests so hanging lookups don't slow CI
 process.env.DNS_LOOKUP_TIMEOUT_MS = process.env.DNS_LOOKUP_TIMEOUT_MS || "50";
 
-(global as any).WebSocket = (global as any).WebSocket || class {};
+(globalThis as unknown as { WebSocket: any }).WebSocket = (globalThis as unknown as { WebSocket: any }).WebSocket || class {};
 
 jest.mock("../src/db/client", () => ({
     supabase: {
@@ -41,10 +41,10 @@ jest.mock("../src/services/reportValidation.service", () => ({
 jest.mock("../src/middleware/auth", () => {
     let isAdmin = false;
     return {
-        optionalAuth: (req: any, res: any, next: any) => {
+        optionalAuth: (req: Request, res: Response, next: NextFunction) => {
             next();
         },
-        requireAuth: (req: any, res: any, next: any) => {
+        requireAuth: (req: Request, res: Response, next: NextFunction) => {
             const token = req.headers.authorization?.slice(7);
             if (!token) {
                 return res.status(401).json({ error: "Unauthenticated" });
@@ -58,7 +58,7 @@ jest.mock("../src/middleware/auth", () => {
         },
         requireRole:
             (...roles: string[]) =>
-            (req: any, res: any, next: any) => {
+            (req: Request, res: Response, next: NextFunction) => {
                 const token = req.headers.authorization?.slice(7);
                 if (!token) {
                     return res.status(401).json({ error: "Authentication is required" });
@@ -81,8 +81,10 @@ jest.mock("../src/middleware/auth", () => {
 import request from "supertest";
 import app from "../src/app";
 import { supabase } from "../src/db/client";
+import { Request, Response, NextFunction } from "express";
 
-const mockedSupabase = supabase as any;
+
+const mockedSupabase = supabase as jest.Mocked<typeof supabase>;
 
 describe("Reports API Routes", () => {
     beforeEach(() => {
@@ -824,7 +826,7 @@ describe("Reports API Routes", () => {
             (mockedSupabase.from as jest.Mock) = jest.fn().mockImplementation((table: string) => {
                 if (table === "counterfeit_reports") {
                     return {
-                        select: jest.fn().mockImplementation((_cols?: string, opts?: any) => {
+                        select: jest.fn().mockImplementation((_cols?: string, opts?: unknown) => {
                             if (opts && opts.head) {
                                 // Threshold count query chain: .eq().eq().eq().eq().or()
                                 return {
@@ -921,7 +923,7 @@ describe("Reports API Routes", () => {
             (mockedSupabase.from as jest.Mock) = jest.fn().mockImplementation((table: string) => {
                 if (table === "counterfeit_reports") {
                     return {
-                        select: jest.fn().mockImplementation((_cols?: string, opts?: any) => {
+                        select: jest.fn().mockImplementation((_cols?: string, opts?: unknown) => {
                             if (opts && opts.head) {
                                 return {
                                     eq: jest.fn().mockReturnValue({

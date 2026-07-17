@@ -4,7 +4,7 @@ import request from "supertest";
 import mlRouter from "../src/routes/ml";
 
 jest.mock("../src/middleware/auth", () => ({
-    requireAuth: (req: any, res: any, next: any) => {
+    requireAuth: (req: Request, res: Response, next: NextFunction) => {
         const token = req.headers.authorization?.slice(7);
         if (!token) {
             return res.status(401).json({ error: "Unauthorized: Missing access token" });
@@ -22,6 +22,8 @@ jest.mock("node:dns", () => ({
 }));
 
 import { promises as dnsMock } from "node:dns";
+import { Request, Response, NextFunction } from "express";
+
 
 function buildApp() {
     const app = express();

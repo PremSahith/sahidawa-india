@@ -54,7 +54,7 @@ jest.mock("../src/db/client", () => {
 // Mock authentication
 jest.mock("../src/middleware/auth", () => {
     return {
-        requireAuth: (req: any, res: any, next: any) => {
+        requireAuth: (req: Request, res: Response, next: NextFunction) => {
             if (!mockAuthenticatedUser) {
                 res.status(401).json({ error: "Authentication required" });
                 return;
@@ -62,21 +62,21 @@ jest.mock("../src/middleware/auth", () => {
             req.user = mockAuthenticatedUser;
             next();
         },
-        optionalAuth: (req: any, res: any, next: any) => {
+        optionalAuth: (req: Request, res: Response, next: NextFunction) => {
             if (mockAuthenticatedUser) {
                 req.user = mockAuthenticatedUser;
             }
             next();
         },
-        requireRole: () => (req: any, res: any, next: any) => {
+        requireRole: () => (req: Request, res: Response, next: NextFunction) => {
             next();
         },
     };
 });
 
 jest.mock("../src/middleware/rateLimit", () => ({
-    notificationRegisterLimiter: (_req: any, _res: any, next: any) => next(),
-    authTargetLimiter: (_req: any, _res: any, next: any) => next(),
+    notificationRegisterLimiter: (_req: Request, _res: Response, next: NextFunction) => next(),
+    authTargetLimiter: (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
 jest.mock("../src/utils/phone", () => ({
@@ -106,6 +106,8 @@ import express from "express";
 import request from "supertest";
 import notificationsRouter from "../src/routes/notifications";
 import { computeTwilioSignature } from "../src/middleware/twilioSignature";
+import { Request, Response, NextFunction } from "express";
+
 
 describe("notifications routes", () => {
     let app: express.Express;

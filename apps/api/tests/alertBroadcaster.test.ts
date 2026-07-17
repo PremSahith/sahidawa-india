@@ -46,7 +46,7 @@ import {
 const mockedSupabase = supabase as jest.Mocked<typeof supabase>;
 
 function getChain() {
-    return mockedSupabase.from() as any;
+    return mockedSupabase.from() as jest.Mocked<any>;
 }
 
 // ---------------------------------------------------------------------------

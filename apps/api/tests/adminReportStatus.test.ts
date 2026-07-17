@@ -1,12 +1,12 @@
 jest.mock("../src/middleware/auth", () => ({
-    optionalAuth: (_req: any, _res: any, next: any) => next(),
-    requireAuth: (req: any, _res: any, next: any) => {
+    optionalAuth: (_req: Request, _res: Response, next: NextFunction) => next(),
+    requireAuth: (req: Request, _res: Response, next: NextFunction) => {
         req.user = { id: "admin-user-id", email: "admin@example.com", role: "admin" };
         next();
     },
     requireRole:
         (..._roles: string[]) =>
-        (_req: any, _res: any, next: any) => {
+        (_req: Request, _res: Response, next: NextFunction) => {
             next();
         },
 }));
@@ -23,6 +23,8 @@ jest.mock("../src/db/client", () => {
 import request from "supertest";
 import app from "../src/app";
 import { supabase } from "../src/db/client";
+import { Request, Response, NextFunction } from "express";
+
 
 const mockedSupabase = supabase as jest.Mocked<typeof supabase>;
 

@@ -9,7 +9,7 @@ jest.mock("../src/db/client", () => {
 
 import { supabase } from "../src/db/client";
 
-const mockedSupabase = supabase as any;
+const mockedSupabase = supabase as jest.Mocked<typeof supabase>;
 
 describe("mergeGuestWishlist", () => {
     beforeEach(() => {

@@ -4,7 +4,7 @@ process.env.SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "test-anon-key"
 // null so the deterministic pg_trgm fallback is exercised instead of network.
 delete process.env.GEMINI_API_KEY;
 
-(global as any).WebSocket = (global as any).WebSocket || class {};
+(globalThis as unknown as { WebSocket: any }).WebSocket = (globalThis as unknown as { WebSocket: any }).WebSocket || class {};
 
 jest.mock("../src/db/client", () => ({
     supabase: {

@@ -33,7 +33,7 @@ jest.mock("../src/db/client", () => {
 // Mock doubleCsrf to automatically bypass CSRF validation during testing
 jest.mock("csrf-csrf", () => ({
     doubleCsrf: () => ({
-        doubleCsrfProtection: (req: any, res: any, next: any) => next(),
+        doubleCsrfProtection: (req: Request, res: Response, next: NextFunction) => next(),
         generateToken: () => "mocked-csrf-token",
     }),
 }));
@@ -44,6 +44,8 @@ const testSalt = "testsalt";
 const testHash = crypto.pbkdf2Sync(testSecret, testSalt, 100000, 64, "sha512").toString("hex");
 
 import { supabase } from "../src/db/client";
+import { Request, Response, NextFunction } from "express";
+
 
 // ── Helpers ────────────────────────────────────────────────────────
 
